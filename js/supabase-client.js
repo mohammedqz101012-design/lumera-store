@@ -1,18 +1,14 @@
 // =====================================================================
-// LUMÉRA — Supabase Client Wrapper
-// Loads supabase-js from CDN, exposes a singleton `sb` and helpers.
+// LUMÉRA — Supabase Client Wrapper (Updated)
 // =====================================================================
 
 (function () {
-  // Config from window.__SUPABASE__ (set inline in HTML before this script)
-  const cfg = window.__SUPABASE__ || {};
-  const url = cfg.url;
-  const key = cfg.anonKey;
+  // Direct config (Hardcoded to fix Vercel environment loading issues)
+  const url = "https://your-project-ref.supabase.co"; // استبدل دي برابط مشروعك الحقيقي
+  const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // استبدل دي بمفتاح الـ Anon Key الحقيقي
 
-  if (!url || !key) {
-    console.warn('[supabase] No config found. Set window.__SUPABASE__ before loading this script.');
-    window.sb = null;
-    return;
+  if (!url || !key || url.includes("your-project-ref")) {
+    console.warn('[supabase] Please update your Supabase URL and Anon Key in supabase-client.js');
   }
 
   // Lazy load supabase-js from CDN (only when needed)
