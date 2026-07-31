@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products — LUMÉRA Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <script>window.__SUPABASE__ = { url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_SUPABASE_ANON_KEY' };</script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <button class="menu-toggle" id="menuToggle">☰</button>
+          <h1 style="display:inline-block;margin-left:12px;">Products</h1>
+          <p>Add, edit, and remove items from your catalog</p>
+        </div>
+        <button class="btn btn-gold" onclick="ProductPage.openModal()">+ New Product</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>All Products</h3>
+          <div class="toolbar">
+            <input type="text" id="search" placeholder="Search by name..." />
+            <select id="filterCat">
+              <option value="all">All Categories</option>
+              <option value="women">Women</option>
+              <option value="men">Men</option>
+              <option value="accessories">Accessories</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <table class="table" id="productsTable">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Flags</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">New Product</h3>
+        <button class="modal-close" onclick="ProductPage.closeModal()">×</button>
+      </div>
+      <form id="productForm" onsubmit="ProductPage.save(event)">
+        <div class="modal-body">
+          <input type="hidden" name="id" />
+
+          <div class="row">
+            <div class="field">
+              <label>Name *</label>
+              <input name="name" required />
+            </div>
+            <div class="field">
+              <label>Slug (auto if empty)</label>
+              <input name="slug" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Description</label>
+            <textarea name="description"></textarea>
+          </div>
+
+          <div class="row three">
+            <div class="field">
+              <label>Price (EGP) *</label>
+              <input type="number" step="0.01" name="price" required />
+            </div>
+            <div class="field">
+              <label>Sale Price</label>
+              <input type="number" step="0.01" name="sale_price" />
+            </div>
+            <div class="field">
+              <label>Stock</label>
+              <input type="number" name="stock" value="0" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label>Category *</label>
+              <select name="category" required>
+                <option value="women">Women</option>
+                <option value="men">Men</option>
+                <option value="accessories">Accessories</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Sizes (comma-separated)</label>
+              <input name="sizes" placeholder="XS, S, M, L, XL" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Colors (name:hex, comma-separated)</label>
+            <input name="colors" placeholder="Black:#111111, Gold:#C8A96A, White:#FFFFFF" />
+          </div>
+
+          <div class="field">
+            <label>Images</label>
+            <input type="file" id="imageFiles" accept="image/*" multiple />
+            <div id="imagePreview" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"></div>
+            <input type="hidden" name="images" />
+            <small style="color:var(--text-muted);">First image will be the main display.</small>
+          </div>
+
+          <div class="row three">
+            <label class="checkbox"><input type="checkbox" name="is_new" /> New Arrival</label>
+            <label class="checkbox"><input type="checkbox" name="is_bestseller" /> Bestseller</label>
+            <label class="checkbox"><input type="checkbox" name="is_featured" /> Featured</label>
+          </div>
+          <div class="row">
+            <label class="checkbox"><input type="checkbox" name="is_active" checked /> Active (visible on site)</label>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="ProductPage.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/supabase-client.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    const ProductPage = {
+      all: [],
+      editing: null,
+      async init() {
+        const session = await Admin.requireAuth();
+        if (!session) return;
+        Admin.initShell('products');
+        await this.load();
+        document.getElementById('search').addEventListener('input', () => this.render());
+        document.getElementById('filterCat').addEventListener('change', () => this.render());
+        document.getElementById('imageFiles').addEventListener('change', (e) => this.previewFiles(e.target.files));
+      },
+
+      async load() {
+        try {
+          this.all = await sb.adminListProducts();
+          this.render();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      },
+
+      render() {
+        const q = (document.getElementById('search').value || '').toLowerCase();
+        const cat = document.getElementById('filterCat').value;
+        const filtered = this.all.filter(p =>
+          (!q || p.name.toLowerCase().includes(q)) &&
+          (cat === 'all' || p.category === cat)
+        );
+        const tbody = document.querySelector('#productsTable tbody');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty">No products. Click "New Product" to add one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = filtered.map(p => {
+          const img = (p.images && p.images[0]) || '';
+          const flags = [
+            p.is_new ? '<span class="badge" style="background:#e0f0ff;color:#2e6dd1">NEW</span>' : '',
+            p.is_bestseller ? '<span class="badge" style="background:#fff4e0;color:#d68a3a">BEST</span>' : '',
+            p.is_featured ? '<span class="badge" style="background:#ede0ff;color:#6b3ec1">FEAT</span>' : '',
+            !p.is_active ? '<span class="badge cancelled">HIDDEN</span>' : ''
+          ].filter(Boolean).join(' ');
+          return `<tr>
+            <td class="img-cell">${img ? `<img src="${Admin.escape(img)}" />` : ''}</td>
+            <td><strong>${Admin.escape(p.name)}</strong></td>
+            <td>${p.category}</td>
+            <td>${p.sale_price ? `<s style="color:#999">${p.price}</s> <strong>${p.sale_price}</strong>` : p.price} EGP</td>
+            <td>${p.stock}</td>
+            <td>${flags}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick='ProductPage.edit(${JSON.stringify(p.id).replace(/'/g, "&apos;")})'>Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="ProductPage.del('${p.id}')">Delete</button>
+            </td>
+          </tr>`;
+        }).join('');
+      },
+
+      openModal() {
+        this.editing = null;
+        document.getElementById('modalTitle').textContent = 'New Product';
+        document.getElementById('productForm').reset();
+        document.querySelector('input[name="is_active"]').checked = true;
+        document.getElementById('imagePreview').innerHTML = '';
+        document.querySelector('input[name="images"]').value = '';
+        document.getElementById('productModal').classList.add('open');
+      },
+
+      edit(id) {
+        const p = this.all.find(x => x.id === id);
+        if (!p) return;
+        this.editing = p;
+        document.getElementById('modalTitle').textContent = 'Edit Product';
+        const f = document.getElementById('productForm');
+        f.id.value = p.id;
+        f.name.value = p.name;
+        f.slug.value = p.slug;
+        f.description.value = p.description || '';
+        f.price.value = p.price;
+        f.sale_price.value = p.sale_price || '';
+        f.stock.value = p.stock;
+        f.category.value = p.category;
+        f.sizes.value = (p.sizes || []).join(', ');
+        f.colors.value = (p.colors || []).map(c => `${c.name}:${c.hex}`).join(', ');
+        f.is_new.checked = p.is_new;
+        f.is_bestseller.checked = p.is_bestseller;
+        f.is_featured.checked = p.is_featured;
+        f.is_active.checked = p.is_active;
+        f.images.value = JSON.stringify(p.images || []);
+        document.getElementById('imagePreview').innerHTML = (p.images || []).map(u => `<img src="${Admin.escape(u)}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;" />`).join('');
+        document.getElementById('productModal').classList.add('open');
+      },
+
+      closeModal() { document.getElementById('productModal').classList.remove('open'); },
+
+      async previewFiles(files) {
+        const preview = document.getElementById('imagePreview');
+        const existing = (document.querySelector('input[name="images"]').value ? JSON.parse(document.querySelector('input[name="images"]').value) : []);
+        for (const f of files) {
+          try {
+            const url = await sb.adminUploadImage(f);
+            existing.push(url);
+            preview.insertAdjacentHTML('beforeend', `<img src="${Admin.escape(url)}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;" />`);
+          } catch (err) {
+            Admin.toast('Image upload failed: ' + err.message, 'error');
+          }
+        }
+        document.querySelector('input[name="images"]').value = JSON.stringify(existing);
+        document.getElementById('imageFiles').value = '';
+      },
+
+      async save(e) {
+        e.preventDefault();
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+          const f = e.target;
+          const payload = {
+            name: f.name.value.trim(),
+            slug: f.slug.value.trim() || f.name.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+            description: f.description.value.trim(),
+            price: Number(f.price.value),
+            sale_price: f.sale_price.value ? Number(f.sale_price.value) : null,
+            stock: Number(f.stock.value || 0),
+            category: f.category.value,
+            sizes: f.sizes.value.split(',').map(s => s.trim()).filter(Boolean),
+            colors: f.colors.value.split(',').map(c => {
+              const [name, hex] = c.split(':').map(x => x.trim());
+              return name ? { name, hex: hex || '#000000' } : null;
+            }).filter(Boolean),
+            images: f.images.value ? JSON.parse(f.images.value) : [],
+            is_new: f.is_new.checked,
+            is_bestseller: f.is_bestseller.checked,
+            is_featured: f.is_featured.checked,
+            is_active: f.is_active.checked
+          };
+          if (f.id.value) {
+            await sb.adminUpdateProduct(f.id.value, payload);
+            Admin.toast('Product updated', 'success');
+          } else {
+            await sb.adminCreateProduct(payload);
+            Admin.toast('Product created', 'success');
+          }
+          this.closeModal();
+          await this.load();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Save Product';
+        }
+      },
+
+      async del(id) {
+        if (!confirm('Delete this product? This cannot be undone.')) return;
+        try {
+          await sb.adminDeleteProduct(id);
+          Admin.toast('Deleted', 'success');
+          await this.load();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      }
+    };
+
+    ProductPage.init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cart — LUMÉRA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script>
+    window.__SUPABASE__ = { url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_SUPABASE_ANON_KEY' };
+  </script>
+</head>
+<body>
+  <header class="header scrolled" id="header">
+    <div class="header-inner">
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <a href="index.html" class="logo">LUMÉRA</a>
+      <nav class="nav-desktop">
+        <a href="index.html">Home</a>
+        <a href="shop.html" class="active">Shop</a>
+        <a href="categories.html">Collections</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn">⌕</button>
+        <a href="wishlist.html" class="icon-btn">♡</a>
+        <a href="account.html" class="icon-btn">☺</a>
+        <a href="cart.html" class="icon-btn cart-btn">⛁ <span class="cart-count" id="cartCount">0</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="cart-page">
+    <div class="container">
+      <h1>Your Cart</h1>
+      <div id="cartContent">Loading…</div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container"><p style="text-align:center;color:#666;font-size:12px;">© <span id="year"></span> LUMÉRA. All rights reserved.</p></div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/data-layer.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    let SHIPPING = 60, FREE_SHIPPING = 3000;
+
+    async function loadSettings() {
+      try {
+        const s = await window.Data.getSettings();
+        SHIPPING = Number(s.shipping_fee) || 60;
+        FREE_SHIPPING = Number(s.free_shipping_threshold) || 3000;
+      } catch (e) {}
+    }
+
+    function render() {
+      const cart = window.Cart.get();
+      const wrap = document.getElementById('cartContent');
+      if (!cart.length) {
+        wrap.innerHTML = `
+          <div class="cart-empty">
+            <h2>Your cart is empty</h2>
+            <p style="color:var(--gray-text);margin-bottom:24px;">Discover our latest pieces and add something special.</p>
+            <a href="shop.html" class="btn btn-primary">Shop Now</a>
+          </div>`;
+        return;
+      }
+
+      const subtotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+      const shipping = subtotal >= FREE_SHIPPING ? 0 : SHIPPING;
+      const total = subtotal + shipping;
+
+      wrap.innerHTML = `
+        <div class="cart-grid">
+          <div>
+            ${cart.map((it, i) => `
+              <div class="cart-item">
+                <img src="${it.image || 'https://via.placeholder.com/100x125'}" alt="" />
+                <div class="cart-item-info">
+                  <h4><a href="product.html?slug=${it.slug || ''}">${it.name}</a></h4>
+                  <div class="meta">${it.size ? 'Size: ' + it.size : ''}${it.color ? ' · ' + it.color : ''}</div>
+                </div>
+                <div class="qty">
+                  <div class="qty-selector">
+                    <button onclick="updateQty(${i}, -1)">−</button>
+                    <input type="number" value="${it.quantity}" onchange="setQty(${i}, this.value)" />
+                    <button onclick="updateQty(${i}, 1)">+</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="price" style="margin-bottom:8px;">${(it.price * it.quantity).toLocaleString()} EGP</div>
+                  <span class="remove" onclick="removeItem(${i})">Remove</span>
+                </div>
+              </div>`).join('')}
+          </div>
+          <aside class="cart-summary">
+            <h3>Order Summary</h3>
+            <div class="row"><span>Subtotal</span><span>${subtotal.toLocaleString()} EGP</span></div>
+            <div class="row"><span>Shipping</span><span>${shipping === 0 ? 'Free' : shipping + ' EGP'}</span></div>
+            ${subtotal < FREE_SHIPPING ? `<p style="font-size:12px;color:var(--gray-text);margin:8px 0;">Add ${(FREE_SHIPPING - subtotal).toLocaleString()} EGP for free shipping</p>` : ''}
+            <div class="row total"><span>Total</span><span>${total.toLocaleString()} EGP</span></div>
+            <a href="checkout.html" class="btn btn-primary">Proceed to Checkout</a>
+            <a href="shop.html" class="btn btn-outline" style="margin-top:8px;">Continue Shopping</a>
+          </aside>
+        </div>`;
+    }
+
+    function updateQty(i, d) {
+      const cart = window.Cart.get();
+      cart[i].quantity = Math.max(1, cart[i].quantity + d);
+      localStorage.setItem('lumera_cart', JSON.stringify(cart));
+      render();
+    }
+    function setQty(i, v) {
+      const cart = window.Cart.get();
+      cart[i].quantity = Math.max(1, parseInt(v) || 1);
+      localStorage.setItem('lumera_cart', JSON.stringify(cart));
+      render();
+    }
+    function removeItem(i) {
+      const cart = window.Cart.get();
+      cart.splice(i, 1);
+      localStorage.setItem('lumera_cart', JSON.stringify(cart));
+      window.Cart.updateBadge();
+      render();
+    }
+
+    (async () => {
+      await loadSettings();
+      render();
+    })();
+  </script>
+</body>
+</html>

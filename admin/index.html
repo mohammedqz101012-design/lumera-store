@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Sign In — LUMÉRA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+
+  <!-- ============================================================
+       SUPABASE CONFIG — replace with your project keys
+       Project Settings > API > URL & anon public key
+       ============================================================ -->
+  <script>
+    window.__SUPABASE__ = {
+      url: 'YOUR_SUPABASE_URL',
+      anonKey: 'YOUR_SUPABASE_ANON_KEY'
+    };
+  </script>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-side">
+      <div class="logo">LUMÉRA</div>
+      <p>Admin control center. Manage products, orders, and brand settings in one place.</p>
+    </div>
+    <div class="login-form-wrap">
+      <form class="login-form" id="loginForm">
+        <h1>Sign in</h1>
+        <p class="sub">Welcome back. Please enter your details.</p>
+
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="admin@lumera.com" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" required placeholder="••••••••" autocomplete="current-password" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="loginBtn">Sign In</button>
+        <p id="loginError" style="color: var(--danger); margin-top: 12px; font-size: 13px;"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/supabase-client.js"></script>
+  <script>
+    const form = document.getElementById('loginForm');
+    const errEl = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      try {
+        const fd = new FormData(form);
+        await sb.signIn(fd.get('email'), fd.get('password'));
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errEl.textContent = err.message || 'Sign in failed.';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

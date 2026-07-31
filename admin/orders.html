@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders — LUMÉRA Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <script>window.__SUPABASE__ = { url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_SUPABASE_ANON_KEY' };</script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <button class="menu-toggle" id="menuToggle">☰</button>
+          <h1 style="display:inline-block;margin-left:12px;">Orders</h1>
+          <p>Manage and export your customer orders</p>
+        </div>
+        <button class="btn btn-gold" onclick="OrdersPage.exportExcel()">↓ Export to Excel</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>All Orders</h3>
+          <div class="toolbar">
+            <input type="date" id="from" title="From date" />
+            <input type="date" id="to" title="To date" />
+            <select id="status">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <table class="table" id="ordersTable">
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody><tr><td colspan="8" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Order Details</h3>
+        <button class="modal-close" onclick="OrdersPage.closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="orderDetail"></div>
+    </div>
+  </div>
+
+  <script src="../js/supabase-client.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    const OrdersPage = {
+      all: [],
+      async init() {
+        const session = await Admin.requireAuth();
+        if (!session) return;
+        Admin.initShell('orders');
+        await this.load();
+        ['from', 'to', 'status'].forEach(id => {
+          document.getElementById(id).addEventListener('change', () => this.render());
+        });
+      },
+
+      async load() {
+        try {
+          this.all = await sb.adminListOrders();
+          this.render();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      },
+
+      render() {
+        const from = document.getElementById('from').value;
+        const to = document.getElementById('to').value;
+        const status = document.getElementById('status').value;
+        const filtered = this.all.filter(o => {
+          if (status !== 'all' && o.status !== status) return false;
+          if (from && new Date(o.created_at) < new Date(from)) return false;
+          if (to && new Date(o.created_at) > new Date(to + 'T23:59:59')) return false;
+          return true;
+        });
+
+        const tbody = document.querySelector('#ordersTable tbody');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty">No orders match the current filter.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = filtered.map(o => `
+          <tr>
+            <td><strong>${Admin.escape(o.order_number)}</strong></td>
+            <td>
+              <div>${Admin.escape(o.customer_name)}</div>
+              <small style="color:#999">${Admin.escape(o.phone)}</small>
+            </td>
+            <td>${(o.order_items || []).length}</td>
+            <td><strong>${Admin.fmtMoney(o.total)}</strong></td>
+            <td>${o.payment_method}</td>
+            <td><span class="badge ${o.status}">${o.status}</span></td>
+            <td>${Admin.fmtDate(o.created_at)}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick='OrdersPage.view(${JSON.stringify(o.id).replace(/'/g, "&apos;")})'>View</button>
+            </td>
+          </tr>`).join('');
+      },
+
+      view(id) {
+        const o = this.all.find(x => x.id === id);
+        if (!o) return;
+        const itemsHtml = (o.order_items || []).map(it => `
+          <tr>
+            <td style="padding:8px 0;">${Admin.escape(it.product_name)} ${it.size ? `<small>(${it.size})</small>` : ''}</td>
+            <td style="text-align:center;">${it.quantity}</td>
+            <td style="text-align:right;">${Admin.fmtMoney(it.subtotal)}</td>
+          </tr>`).join('');
+        document.getElementById('orderDetail').innerHTML = `
+          <h4 style="margin-top:0;font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:#666;">Order ${Admin.escape(o.order_number)}</h4>
+          <p style="color:#666;margin:0 0 16px;">${Admin.fmtDate(o.created_at)}</p>
+
+          <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#666;">Customer</h4>
+          <p>${Admin.escape(o.customer_name)}<br>${Admin.escape(o.email)}<br>${Admin.escape(o.phone)}<br>${Admin.escape(o.address)}, ${Admin.escape(o.city)}</p>
+
+          <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#666;">Items</h4>
+          <table style="width:100%;border-collapse:collapse;">${itemsHtml}</table>
+
+          <table style="width:100%;margin-top:16px;">
+            <tr><td>Subtotal</td><td style="text-align:right;">${Admin.fmtMoney(o.subtotal)}</td></tr>
+            <tr><td>Shipping</td><td style="text-align:right;">${Admin.fmtMoney(o.shipping)}</td></tr>
+            <tr style="font-weight:bold;font-size:18px;"><td style="padding-top:8px;">Total</td><td style="text-align:right;padding-top:8px;">${Admin.fmtMoney(o.total)}</td></tr>
+          </table>
+
+          <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#666;margin-top:24px;">Status</h4>
+          <select onchange="OrdersPage.changeStatus('${o.id}', this.value)" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+            ${['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        `;
+        document.getElementById('orderModal').classList.add('open');
+      },
+
+      closeModal() { document.getElementById('orderModal').classList.remove('open'); },
+
+      async changeStatus(id, status) {
+        try {
+          await sb.adminUpdateOrderStatus(id, status);
+          Admin.toast('Status updated', 'success');
+          await this.load();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      },
+
+      async exportExcel() {
+        const session = await sb.getSession();
+        const token = session?.access_token;
+        const from = document.getElementById('from').value;
+        const to = document.getElementById('to').value;
+        const status = document.getElementById('status').value;
+        const params = new URLSearchParams();
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        if (status !== 'all') params.set('status', status);
+
+        // Use Vercel API endpoint
+        const url = `/api/export-orders?${params.toString()}`;
+        try {
+          const r = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!r.ok) {
+            const err = await r.json();
+            throw new Error(err.error || 'Export failed');
+          }
+          const blob = await r.blob();
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `lumera-orders-${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          Admin.toast('Excel downloaded', 'success');
+        } catch (err) {
+          Admin.toast('Export failed: ' + err.message, 'error');
+        }
+      }
+    };
+
+    OrdersPage.init();
+  </script>
+</body>
+</html>

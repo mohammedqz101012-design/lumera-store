@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product — LUMÉRA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script>
+    window.__SUPABASE__ = { url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_SUPABASE_ANON_KEY' };
+  </script>
+</head>
+<body>
+  <header class="header scrolled" id="header">
+    <div class="header-inner">
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <a href="index.html" class="logo">LUMÉRA</a>
+      <nav class="nav-desktop">
+        <a href="index.html">Home</a>
+        <a href="shop.html" class="active">Shop</a>
+        <a href="categories.html">Collections</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn">⌕</button>
+        <a href="wishlist.html" class="icon-btn">♡</a>
+        <a href="account.html" class="icon-btn">☺</a>
+        <a href="cart.html" class="icon-btn cart-btn">⛁ <span class="cart-count" id="cartCount">0</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="product-page" id="productWrap">
+    <div class="container">
+      <div class="loading" style="padding:120px 0;text-align:center;">Loading…</div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container"><p style="text-align:center;color:#666;font-size:12px;">© <span id="year"></span> LUMÉRA. All rights reserved.</p></div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/data-layer.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('slug');
+
+    let product = null;
+    let selectedColor = null;
+    let selectedSize = null;
+    let qty = 1;
+
+    async function loadProduct() {
+      if (!slug) { location.href = 'shop.html'; return; }
+      product = await window.Data.getBySlug(slug);
+      if (!product) { location.href = 'shop.html'; return; }
+      document.title = `${product.name} — LUMÉRA`;
+      selectedColor = product.colors[0]?.name || null;
+      selectedSize = product.sizes[0] || null;
+      render();
+    }
+
+    function render() {
+      const onSale = product.salePrice && product.salePrice < product.price;
+      const discount = onSale ? Math.round((1 - product.salePrice / product.price) * 100) : 0;
+      document.getElementById('productWrap').innerHTML = `
+        <div class="container">
+          <div class="product-grid">
+            <div class="product-gallery">
+              <div class="main-image"><img id="mainImg" src="${product.images[0]}" alt="${product.name}" /></div>
+              <div class="product-thumbs">
+                ${product.images.map((img, i) => `<img src="${img}" class="${i === 0 ? 'active' : ''}" onclick="changeImage('${img}', this)" />`).join('')}
+              </div>
+            </div>
+            <div class="product-info">
+              <h1>${product.name}</h1>
+              <div class="product-rating">${'★'.repeat(Math.round(product.rating))}${'☆'.repeat(5 - Math.round(product.rating))} <span>(${product.reviews} reviews)</span></div>
+              <div class="price">
+                ${onSale ? `<span class="price-old">${product.price.toLocaleString()} EGP</span> ${product.salePrice.toLocaleString()} EGP` : `${product.price.toLocaleString()} EGP`}
+                ${discount > 0 ? `<span style="background:var(--gold);color:#fff;padding:4px 8px;font-size:11px;margin-left:12px;">-${discount}%</span>` : ''}
+              </div>
+              <p class="description">${product.description}</p>
+
+              ${product.colors.length ? `
+                <div class="product-option">
+                  <h4>Color: <span id="colorName">${selectedColor}</span></h4>
+                  <div class="color-options">
+                    ${product.colors.map(c => `<button class="color-swatch ${c.name === selectedColor ? 'selected' : ''}" style="background:${c.hex}" title="${c.name}" onclick="selectColor('${c.name}', this)"></button>`).join('')}
+                  </div>
+                </div>` : ''}
+
+              ${product.sizes.length ? `
+                <div class="product-option">
+                  <h4>Size: <span id="sizeName">${selectedSize}</span></h4>
+                  <div class="size-options">
+                    ${product.sizes.map(s => `<button class="size-btn ${s === selectedSize ? 'selected' : ''}" onclick="selectSize('${s}', this)">${s}</button>`).join('')}
+                  </div>
+                </div>` : ''}
+
+              <div class="product-option">
+                <h4>Quantity</h4>
+                <div class="qty-selector">
+                  <button onclick="changeQty(-1)">−</button>
+                  <input type="number" id="qtyInput" value="1" min="1" onchange="qty=parseInt(this.value)||1" />
+                  <button onclick="changeQty(1)">+</button>
+                </div>
+              </div>
+
+              <div class="product-actions">
+                <button class="btn btn-primary" onclick="addToCart()">Add to Cart</button>
+                <button class="btn btn-gold" onclick="buyNow()">Buy Now</button>
+              </div>
+
+              <div class="product-meta">
+                ${Object.entries(product.specs || {}).map(([k, v]) => `<div><strong>${k.charAt(0).toUpperCase() + k.slice(1)}</strong><span>${v}</span></div>`).join('')}
+                <div><strong>Stock</strong><span>${product.stock > 0 ? `${product.stock} available` : 'Out of stock'}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-tabs">
+            <div class="tab-head">
+              <button class="tab-btn active" onclick="showTab('desc', this)">Description</button>
+              <button class="tab-btn" onclick="showTab('specs', this)">Specifications</button>
+              <button class="tab-btn" onclick="showTab('reviews', this)">Reviews</button>
+            </div>
+            <div class="tab-content active" id="tab-desc">
+              <p>${product.description}</p>
+              <p style="margin-top:16px;color:var(--gray-text);">Each LUMÉRA piece is hand-finished in our partner ateliers across Italy, France, and Portugal. We work with mills that have been refining their craft for generations — because true luxury is felt, not announced.</p>
+            </div>
+            <div class="tab-content" id="tab-specs">
+              <table>${Object.entries(product.specs || {}).map(([k, v]) => `<tr><td>${k.charAt(0).toUpperCase() + k.slice(1)}</td><td>${v}</td></tr>`).join('')}</table>
+            </div>
+            <div class="tab-content" id="tab-reviews">
+              <div id="reviewsList">Loading…</div>
+            </div>
+          </div>
+        </div>`;
+
+      // Load reviews
+      const reviews = window.Data.getReviews(product.id);
+      document.getElementById('reviewsList').innerHTML = reviews.map(r => `
+        <div style="padding:16px 0;border-bottom:1px solid var(--gray);">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <strong>${r.author}</strong>
+            <span style="color:var(--gold);">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+          </div>
+          <p>${r.text}</p>
+          <small style="color:var(--gray-text);">${r.date}</small>
+        </div>`).join('');
+    }
+
+    function changeImage(src, el) {
+      document.getElementById('mainImg').src = src;
+      document.querySelectorAll('.product-thumbs img').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+    }
+    function selectColor(name, el) {
+      selectedColor = name;
+      document.querySelectorAll('.color-swatch').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('colorName').textContent = name;
+    }
+    function selectSize(size, el) {
+      selectedSize = size;
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('sizeName').textContent = size;
+    }
+    function changeQty(d) {
+      qty = Math.max(1, qty + d);
+      document.getElementById('qtyInput').value = qty;
+    }
+    function addToCart() {
+      window.Cart.add({
+        id: product.id,
+        name: product.name,
+        price: product.salePrice || product.price,
+        image: product.images[0],
+        slug: product.slug,
+        size: selectedSize,
+        color: selectedColor,
+        quantity: qty
+      });
+      Admin.toast('Added to cart', 'success');
+    }
+    function buyNow() {
+      addToCart();
+      setTimeout(() => location.href = 'cart.html', 400);
+    }
+    function showTab(name, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    loadProduct();
+  </script>
+</body>
+</html>

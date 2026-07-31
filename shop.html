@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop — LUMÉRA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script>
+    window.__SUPABASE__ = { url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_SUPABASE_ANON_KEY' };
+  </script>
+</head>
+<body>
+  <header class="header scrolled" id="header">
+    <div class="header-inner">
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <a href="index.html" class="logo">LUMÉRA</a>
+      <nav class="nav-desktop">
+        <a href="index.html">Home</a>
+        <a href="shop.html" class="active">Shop</a>
+        <a href="categories.html">Collections</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn">⌕</button>
+        <a href="wishlist.html" class="icon-btn">♡</a>
+        <a href="account.html" class="icon-btn">☺</a>
+        <a href="cart.html" class="icon-btn cart-btn">⛁ <span class="cart-count" id="cartCount">0</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="shop-page">
+    <div class="container">
+      <div class="shop-header">
+        <div>
+          <h1 id="shopTitle">Shop All</h1>
+          <p id="shopSubtitle">Discover our complete collection</p>
+        </div>
+      </div>
+
+      <div class="shop-layout">
+        <aside class="shop-filters">
+          <div class="filter-group">
+            <h4>Category</h4>
+            <label><input type="radio" name="cat" value="all" checked> All</label>
+            <label><input type="radio" name="cat" value="women"> Women</label>
+            <label><input type="radio" name="cat" value="men"> Men</label>
+            <label><input type="radio" name="cat" value="accessories"> Accessories</label>
+            <label><input type="radio" name="cat" value="new"> New Arrivals</label>
+            <label><input type="radio" name="cat" value="bestsellers"> Best Sellers</label>
+          </div>
+          <div class="filter-group">
+            <h4>Price (EGP)</h4>
+            <input type="number" id="priceMin" placeholder="Min" />
+            <input type="number" id="priceMax" placeholder="Max" />
+          </div>
+        </aside>
+
+        <div>
+          <div class="shop-toolbar">
+            <span class="count" id="productCount">0 products</span>
+            <select id="sortBy">
+              <option value="default">Sort: Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name">Name: A to Z</option>
+              <option value="rating">Highest Rated</option>
+            </select>
+          </div>
+          <div class="shop-products" id="products"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p style="text-align:center;color:#666;font-size:12px;">© <span id="year"></span> LUMÉRA. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/data-layer.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const params = new URLSearchParams(location.search);
+    const searchQ = params.get('search');
+    let activeCat = params.get('cat') || 'all';
+
+    // Pre-check category from URL
+    if (activeCat !== 'all') {
+      const radio = document.querySelector(`input[name="cat"][value="${activeCat}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    // Update title based on category
+    const titles = {
+      all: ['Shop All', 'Discover our complete collection'],
+      women: ['Women', 'Refined essentials for the modern woman'],
+      men: ['Men', 'Considered pieces for the modern man'],
+      accessories: ['Accessories', 'The finishing touches'],
+      new: ['New Arrivals', 'The latest to land'],
+      bestsellers: ['Best Sellers', 'Our most-loved pieces']
+    };
+    const [t, st] = titles[activeCat] || titles.all;
+    document.getElementById('shopTitle').textContent = t;
+    document.getElementById('shopSubtitle').textContent = st;
+
+    let allProducts = [];
+
+    function renderCard(p) {
+      const onSale = p.salePrice && p.salePrice < p.price;
+      const discount = onSale ? Math.round((1 - p.salePrice / p.price) * 100) : 0;
+      return `
+        <article class="product-card">
+          <a href="product.html?slug=${p.slug}" class="product-image">
+            <img src="${p.images[0] || 'https://via.placeholder.com/400x500?text=LUMERA'}" alt="${p.name}" loading="lazy" />
+            ${p.images[1] ? `<img class="img-hover" src="${p.images[1]}" alt="" />` : ''}
+            ${discount > 0 ? `<span class="badge badge-sale">-${discount}%</span>` : ''}
+            ${p.isNew ? '<span class="badge badge-new">New</span>' : ''}
+          </a>
+          <div class="product-info">
+            <h3><a href="product.html?slug=${p.slug}">${p.name}</a></h3>
+            <div class="product-rating">${'★'.repeat(Math.round(p.rating))}${'☆'.repeat(5 - Math.round(p.rating))} <span>(${p.reviews})</span></div>
+            <div class="product-price">
+              ${onSale ? `<span class="price-old">${p.price.toLocaleString()} EGP</span> <span class="price">${p.salePrice.toLocaleString()} EGP</span>` : `<span class="price">${p.price.toLocaleString()} EGP</span>`}
+            </div>
+          </div>
+        </article>`;
+    }
+
+    function applyFilters() {
+      const min = parseFloat(document.getElementById('priceMin').value) || 0;
+      const max = parseFloat(document.getElementById('priceMax').value) || Infinity;
+      const sort = document.getElementById('sortBy').value;
+
+      let filtered = allProducts.filter(p => {
+        const price = p.salePrice || p.price;
+        return price >= min && price <= max;
+      });
+
+      if (sort === 'price-asc') filtered.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price));
+      if (sort === 'price-desc') filtered.sort((a, b) => (b.salePrice || b.price) - (a.salePrice || a.price));
+      if (sort === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+      if (sort === 'rating') filtered.sort((a, b) => b.rating - a.rating);
+
+      const wrap = document.getElementById('products');
+      if (!filtered.length) {
+        wrap.innerHTML = '<p class="empty">No products match your filters.</p>';
+      } else {
+        wrap.innerHTML = filtered.map(renderCard).join('');
+      }
+      document.getElementById('productCount').textContent = `${filtered.length} product${filtered.length === 1 ? '' : 's'}`;
+    }
+
+    document.querySelectorAll('input[name="cat"]').forEach(r => r.addEventListener('change', async (e) => {
+      activeCat = e.target.value;
+      allProducts = await window.Data.getAll({ category: activeCat });
+      applyFilters();
+    }));
+    document.getElementById('priceMin').addEventListener('input', applyFilters);
+    document.getElementById('priceMax').addEventListener('input', applyFilters);
+    document.getElementById('sortBy').addEventListener('change', applyFilters);
+
+    (async () => {
+      const filters = { category: activeCat };
+      if (searchQ) filters.search = searchQ;
+      allProducts = await window.Data.getAll(filters);
+      applyFilters();
+    })();
+  </script>
+</body>
+</html>

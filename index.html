@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LUMÉRA — Modern luxury fashion. Curated pieces for the discerning individual." />
+  <title>LUMÉRA — Modern Luxury Fashion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+
+  <script>
+    // ============================================================
+    // SUPABASE CONFIG
+    // Replace these with your project keys after running supabase/schema.sql
+    // Leave as-is to use DEMO MODE (local data only — orders won't persist)
+    // ============================================================
+    window.__SUPABASE__ = {
+      url: 'YOUR_SUPABASE_URL',
+      anonKey: 'YOUR_SUPABASE_ANON_KEY'
+    };
+  </script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header transparent" id="header">
+    <div class="header-inner">
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+      <a href="index.html" class="logo">LUMÉRA</a>
+      <nav class="nav-desktop">
+        <a href="index.html" class="active">Home</a>
+        <a href="shop.html">Shop</a>
+        <a href="categories.html">Collections</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn" aria-label="Search">⌕</button>
+        <a href="wishlist.html" class="icon-btn" aria-label="Wishlist">♡</a>
+        <a href="account.html" class="icon-btn" aria-label="Account">☺</a>
+        <a href="cart.html" class="icon-btn cart-btn" aria-label="Cart">
+          ⛁ <span class="cart-count" id="cartCount">0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Demo banner (only shown in demo mode) -->
+  <div class="demo-banner" id="demoBanner">
+    <strong>DEMO MODE</strong> — Configure <code>window.__SUPABASE__</code> in HTML files to enable live orders & admin.
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg" style="background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&q=80');"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow reveal">SS 2026 Collection</p>
+      <h1 class="hero-title reveal">Quiet Luxury,<br/>Crafted with Intent</h1>
+      <p class="hero-sub reveal">A curated edit of timeless pieces — designed to be worn for years, not seasons.</p>
+      <div class="hero-actions reveal">
+        <a href="shop.html" class="btn btn-primary">Shop Now</a>
+        <a href="categories.html" class="btn btn-ghost">Explore Collection</a>
+      </div>
+    </div>
+    <div class="hero-scroll reveal">Scroll <span>↓</span></div>
+  </section>
+
+  <!-- Featured Collections -->
+  <section class="section collections">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="eyebrow">Discover</p>
+        <h2>Featured Collections</h2>
+      </div>
+      <div class="collections-grid">
+        <a href="shop.html?cat=women" class="collection-card reveal">
+          <img src="https://images.unsplash.com/photo-1581044777550-4cfa60707c03?w=800&q=80" alt="Women" />
+          <div class="collection-overlay"><h3>Women</h3><span>Shop →</span></div>
+        </a>
+        <a href="shop.html?cat=men" class="collection-card reveal">
+          <img src="https://images.unsplash.com/photo-1617137968427-85924c800a22?w=800&q=80" alt="Men" />
+          <div class="collection-overlay"><h3>Men</h3><span>Shop →</span></div>
+        </a>
+        <a href="shop.html?cat=new" class="collection-card reveal">
+          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80" alt="New" />
+          <div class="collection-overlay"><h3>New Arrivals</h3><span>Shop →</span></div>
+        </a>
+        <a href="shop.html?cat=bestsellers" class="collection-card reveal">
+          <img src="https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=800&q=80" alt="Bestsellers" />
+          <div class="collection-overlay"><h3>Best Sellers</h3><span>Shop →</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Products -->
+  <section class="section products-section">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="eyebrow">Curated</p>
+        <h2>Featured Pieces</h2>
+      </div>
+      <div class="products-grid" id="featuredProducts">
+        <div class="loading">Loading products…</div>
+      </div>
+      <div class="section-cta reveal">
+        <a href="shop.html" class="btn btn-outline">View All</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why LUMÉRA -->
+  <section class="section why-section">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="eyebrow">The LUMÉRA Standard</p>
+        <h2>Why Choose LUMÉRA</h2>
+      </div>
+      <div class="why-grid">
+        <div class="why-item reveal">
+          <div class="why-icon">◆</div>
+          <h4>Premium Quality</h4>
+          <p>Hand-selected materials from the world's finest mills and ateliers.</p>
+        </div>
+        <div class="why-item reveal">
+          <div class="why-icon">◆</div>
+          <h4>Fast Shipping</h4>
+          <p>Express delivery across Egypt and the region. Tracked, insured, on time.</p>
+        </div>
+        <div class="why-item reveal">
+          <div class="why-icon">◆</div>
+          <h4>Secure Payments</h4>
+          <p>Multiple trusted payment options, end-to-end encrypted.</p>
+        </div>
+        <div class="why-item reveal">
+          <div class="why-icon">◆</div>
+          <h4>Easy Returns</h4>
+          <p>14-day hassle-free returns. No questions asked.</p>
+        </div>
+        <div class="why-item reveal">
+          <div class="why-icon">◆</div>
+          <h4>Personal Support</h4>
+          <p>Direct line to our team — message us anytime, on WhatsApp or email.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- New Arrivals -->
+  <section class="section new-section">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="eyebrow">Just Landed</p>
+        <h2>New Arrivals</h2>
+      </div>
+      <div class="products-grid" id="newProducts">
+        <div class="loading">Loading…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Promo Banner -->
+  <section class="promo-banner reveal">
+    <div class="promo-bg" style="background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&q=80');"></div>
+    <div class="promo-content">
+      <p class="eyebrow">Limited Time</p>
+      <h2>15% Off Your First Order</h2>
+      <p>Sign up to our newsletter and receive an exclusive welcome offer.</p>
+      <a href="account.html" class="btn btn-primary">Sign Up</a>
+    </div>
+  </section>
+
+  <!-- Customer Reviews -->
+  <section class="section reviews-section">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="eyebrow">Voices</p>
+        <h2>What Our Clients Say</h2>
+      </div>
+      <div class="reviews-grid">
+        <article class="review-card reveal">
+          <div class="stars">★★★★★</div>
+          <p>"The cashmere coat is exquisite. The construction, the hand, the drape — everything feels considered. A true investment piece."</p>
+          <footer><strong>Sarah M.</strong><span>Cairo</span></footer>
+        </article>
+        <article class="review-card reveal">
+          <div class="stars">★★★★★</div>
+          <p>"I've been searching for a watch that doesn't scream. This one whispers. Perfect weight, perfect proportions."</p>
+          <footer><strong>James K.</strong><span>Dubai</span></footer>
+        </article>
+        <article class="review-card reveal">
+          <div class="stars">★★★★★</div>
+          <p>"Customer service is exceptional. They followed up personally to make sure the fit was right. Rare these days."</p>
+          <footer><strong>Layla A.</strong><span>Alexandria</span></footer>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Instagram Gallery -->
+  <section class="section ig-section">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="eyebrow">@lumera</p>
+        <h2>Follow on Instagram</h2>
+      </div>
+      <div class="ig-grid">
+        <a href="#" class="ig-tile reveal"><img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&q=80" alt="" /></a>
+        <a href="#" class="ig-tile reveal"><img src="https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=400&q=80" alt="" /></a>
+        <a href="#" class="ig-tile reveal"><img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&q=80" alt="" /></a>
+        <a href="#" class="ig-tile reveal"><img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&q=80" alt="" /></a>
+        <a href="#" class="ig-tile reveal"><img src="https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=400&q=80" alt="" /></a>
+        <a href="#" class="ig-tile reveal"><img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=400&q=80" alt="" /></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="section newsletter">
+    <div class="container narrow">
+      <div class="newsletter-inner reveal">
+        <p class="eyebrow">Stay In Touch</p>
+        <h2>Join the LUMÉRA Circle</h2>
+        <p>Early access to new collections, private sales, and editorial features.</p>
+        <form class="newsletter-form" id="newsletterForm">
+          <input type="email" placeholder="Your email" required />
+          <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-logo">LUMÉRA</div>
+          <p>Modern luxury, quietly considered. Designed in Cairo, crafted worldwide.</p>
+        </div>
+        <div class="footer-col">
+          <h5>Shop</h5>
+          <a href="shop.html?cat=women">Women</a>
+          <a href="shop.html?cat=men">Men</a>
+          <a href="shop.html?cat=accessories">Accessories</a>
+          <a href="shop.html?cat=new">New Arrivals</a>
+        </div>
+        <div class="footer-col">
+          <h5>Service</h5>
+          <a href="contact.html">Contact</a>
+          <a href="faq.html">FAQ</a>
+          <a href="account.html">My Account</a>
+        </div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <a href="#">Instagram</a>
+          <a href="#">Facebook</a>
+          <a href="#">TikTok</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© <span id="year"></span> LUMÉRA. All rights reserved.</p>
+        <a href="admin/index.html" class="admin-link">Admin</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/data-layer.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Hide demo banner if Supabase is configured
+    if (window.Data.isLive) {
+      document.getElementById('demoBanner').style.display = 'none';
+    }
+
+    // ============== RENDER PRODUCTS ==============
+    function renderProductCard(p) {
+      const onSale = p.salePrice && p.salePrice < p.price;
+      const discount = onSale ? Math.round((1 - p.salePrice / p.price) * 100) : 0;
+      return `
+        <article class="product-card reveal">
+          <a href="product.html?slug=${encodeURIComponent(p.slug)}" class="product-image">
+            <img src="${p.images[0] || 'https://via.placeholder.com/400x500?text=LUMERA'}" alt="${p.name}" loading="lazy" />
+            ${p.images[1] ? `<img class="img-hover" src="${p.images[1]}" alt="" loading="lazy" />` : ''}
+            ${discount > 0 ? `<span class="badge badge-sale">-${discount}%</span>` : ''}
+            ${p.isNew ? '<span class="badge badge-new">New</span>' : ''}
+            <button class="wishlist-btn" onclick="event.preventDefault(); window.Wishlist.toggle({id:'${p.id}',name:'${p.name.replace(/'/g, "\\'")}',price:${p.price},image:'${p.images[0]}'}); this.classList.toggle('active');" aria-label="Wishlist">♡</button>
+            <div class="quick-view">
+              <a href="product.html?slug=${encodeURIComponent(p.slug)}" class="btn btn-quick">Quick View</a>
+            </div>
+          </a>
+          <div class="product-info">
+            <h3><a href="product.html?slug=${encodeURIComponent(p.slug)}">${p.name}</a></h3>
+            <div class="product-rating">
+              ${'★'.repeat(Math.round(p.rating))}${'☆'.repeat(5 - Math.round(p.rating))}
+              <span>(${p.reviews})</span>
+            </div>
+            <div class="product-price">
+              ${onSale ? `<span class="price-old">${p.price.toLocaleString()} EGP</span> <span class="price">${p.salePrice.toLocaleString()} EGP</span>` : `<span class="price">${p.price.toLocaleString()} EGP</span>`}
+            </div>
+          </div>
+        </article>`;
+    }
+
+    async function loadProducts() {
+      try {
+        const [featured, news] = await Promise.all([
+          window.Data.getFeatured(),
+          window.Data.getNew()
+        ]);
+
+        document.getElementById('featuredProducts').innerHTML = featured.slice(0, 8).map(renderProductCard).join('');
+        document.getElementById('newProducts').innerHTML = news.slice(0, 4).map(renderProductCard).join('');
+
+        // Re-trigger reveal animations
+        if (window.initRevealAnimations) window.initRevealAnimations();
+      } catch (err) {
+        document.getElementById('featuredProducts').innerHTML = '<p class="error">Could not load products.</p>';
+      }
+    }
+
+    // Newsletter form
+    document.getElementById('newsletterForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      Admin.toast('Thanks for subscribing!', 'success');
+      e.target.reset();
+    });
+
+    loadProducts();
+  </script>
+</body>
+</html>

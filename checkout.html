@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout — LUMÉRA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <link rel="stylesheet" href="css/checkout.css" />
+  <script>
+    // ============================================================
+    // SUPABASE CONFIG — set your project keys
+    // ============================================================
+    window.__SUPABASE__ = {
+      url: 'YOUR_SUPABASE_URL',
+      anonKey: 'YOUR_SUPABASE_ANON_KEY'
+    };
+  </script>
+</head>
+<body>
+  <!-- ============ HEADER (same as your other pages) ============ -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu">☰</button>
+      <a href="index.html" class="logo">LUMÉRA</a>
+      <nav class="nav-desktop">
+        <a href="index.html">Home</a>
+        <a href="shop.html">Shop</a>
+        <a href="categories.html">Categories</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn" aria-label="Search">⌕</button>
+        <a href="wishlist.html" class="icon-btn" aria-label="Wishlist">♡</a>
+        <a href="account.html" class="icon-btn" aria-label="Account">☺</a>
+        <a href="cart.html" class="icon-btn cart-btn" aria-label="Cart">
+          ⛁ <span class="cart-count" id="cartCount">0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="checkout-page">
+    <div class="container">
+      <h1 class="page-title">Checkout</h1>
+
+      <form id="checkoutForm" class="checkout-grid">
+        <!-- LEFT: form -->
+        <div class="checkout-form">
+          <section class="form-section">
+            <h2>Contact</h2>
+            <div class="form-row">
+              <div class="form-field">
+                <label>Email *</label>
+                <input type="email" name="email" required />
+              </div>
+              <div class="form-field">
+                <label>Phone *</label>
+                <input type="tel" name="phone" required placeholder="+20 ..." />
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2>Shipping Address</h2>
+            <div class="form-field">
+              <label>Full Name *</label>
+              <input name="customer_name" required />
+            </div>
+            <div class="form-field">
+              <label>Address *</label>
+              <input name="address" required placeholder="Street, building, apartment" />
+            </div>
+            <div class="form-row three">
+              <div class="form-field">
+                <label>City *</label>
+                <input name="city" required />
+              </div>
+              <div class="form-field">
+                <label>Postal Code</label>
+                <input name="postal_code" />
+              </div>
+              <div class="form-field">
+                <label>Country</label>
+                <input name="country" value="Egypt" />
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Order Notes (optional)</label>
+              <textarea name="notes" rows="3" placeholder="Special instructions for your order..."></textarea>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h2>Payment Method</h2>
+            <div id="paymentMethods" class="payment-methods">
+              <p class="muted">Loading payment options...</p>
+            </div>
+          </section>
+
+          <button type="submit" class="btn btn-primary btn-lg" id="placeOrder">
+            Place Order
+          </button>
+        </div>
+
+        <!-- RIGHT: order summary -->
+        <aside class="checkout-summary">
+          <h2>Order Summary</h2>
+          <div id="summaryItems" class="summary-items"></div>
+          <div class="summary-totals">
+            <div><span>Subtotal</span><span id="sumSubtotal">0.00 EGP</span></div>
+            <div><span>Shipping</span><span id="sumShipping">0.00 EGP</span></div>
+            <div class="summary-total"><span>Total</span><span id="sumTotal">0.00 EGP</span></div>
+          </div>
+        </aside>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer placeholder -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> LUMÉRA. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Success modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Order Placed ✓</h3>
+      </div>
+      <div class="modal-body" style="text-align:center;padding:40px 24px;">
+        <h2 style="font-family:'Cormorant Garamond',serif;font-size:32px;margin:0 0 12px;">Thank you!</h2>
+        <p style="color:#666;">Your order <strong id="orderNumber"></strong> has been received.</p>
+        <p style="color:#666;">We'll contact you shortly to confirm delivery details.</p>
+        <a href="index.html" class="btn btn-primary" style="margin-top:24px;">Continue Shopping</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ============== RENDER CART SUMMARY ==============
+    function renderSummary() {
+      const cart = window.Cart.get();
+      const wrap = document.getElementById('summaryItems');
+      if (!cart.length) {
+        wrap.innerHTML = '<p class="muted">Your cart is empty. <a href="shop.html">Continue shopping</a>.</p>';
+        return;
+      }
+      wrap.innerHTML = cart.map(it => `
+        <div class="summary-item">
+          <img src="${Admin.escape(it.image || '')}" alt="" />
+          <div class="summary-item-info">
+            <div class="summary-item-name">${Admin.escape(it.name)}</div>
+            <small>${it.size ? 'Size: ' + it.size : ''} ${it.color ? '/ ' + it.color : ''}</small>
+            <small>Qty: ${it.quantity}</small>
+          </div>
+          <div class="summary-item-price">${(it.price * it.quantity).toFixed(2)} EGP</div>
+        </div>`).join('');
+
+      const subtotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+      // Load shipping from settings
+      loadShippingThenRender(subtotal);
+    }
+
+    async function loadShippingThenRender(subtotal) {
+      let fee = 60, free = 3000;
+      try {
+        const settings = await sb.getSettings();
+        fee = Number(settings.shipping_fee || 60);
+        free = Number(settings.free_shipping_threshold || 3000);
+      } catch (e) { /* fallback to defaults */ }
+      const shipping = subtotal >= free ? 0 : fee;
+      const total = subtotal + shipping;
+      document.getElementById('sumSubtotal').textContent = subtotal.toFixed(2) + ' EGP';
+      document.getElementById('sumShipping').textContent = shipping === 0 ? 'Free' : shipping.toFixed(2) + ' EGP';
+      document.getElementById('sumTotal').textContent = total.toFixed(2) + ' EGP';
+      document.getElementById('cartCount').textContent = cart.reduce((s, it) => s + it.quantity, 0);
+    }
+
+    // ============== PAYMENT METHODS ==============
+    async function loadPaymentMethods() {
+      try {
+        const settings = await sb.getSettings();
+        const methods = (settings.payment_methods || []).filter(m => m.enabled);
+        const wrap = document.getElementById('paymentMethods');
+        if (!methods.length) {
+          wrap.innerHTML = '<p class="muted">No payment methods available. Please contact us directly.</p>';
+          return;
+        }
+        wrap.innerHTML = methods.map((m, i) => `
+          <label class="payment-option">
+            <input type="radio" name="payment_method" value="${Admin.escape(m.id)}" ${i === 0 ? 'checked' : ''} />
+            <div>
+              <div class="payment-label">${Admin.escape(m.label)}</div>
+              ${m.instructions ? `<small>${Admin.escape(m.instructions)}</small>` : ''}
+            </div>
+          </label>`).join('');
+      } catch (e) {
+        document.getElementById('paymentMethods').innerHTML = '<p class="muted">Could not load payment options. Please refresh.</p>';
+      }
+    }
+
+    // ============== SUBMIT ORDER ==============
+    document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cart = window.Cart.get();
+      if (!cart.length) {
+        Admin.toast('Your cart is empty', 'error');
+        return;
+      }
+      const btn = document.getElementById('placeOrder');
+      btn.disabled = true;
+      btn.textContent = 'Placing order...';
+
+      try {
+        const f = e.target;
+        const subtotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+        const settings = await sb.getSettings();
+        const fee = Number(settings.shipping_fee || 60);
+        const free = Number(settings.free_shipping_threshold || 3000);
+        const shipping = subtotal >= free ? 0 : fee;
+        const total = subtotal + shipping;
+
+        const order = {
+          customer_name: f.customer_name.value,
+          email: f.email.value,
+          phone: f.phone.value,
+          address: f.address.value,
+          city: f.city.value,
+          country: f.country.value || 'Egypt',
+          postal_code: f.postal_code.value || null,
+          subtotal, shipping, total,
+          payment_method: f.payment_method.value,
+          notes: f.notes.value || null
+        };
+        const items = cart.map(it => ({
+          product_id: it.id || null,
+          product_name: it.name,
+          product_image: it.image,
+          size: it.size || null,
+          color: it.color || null,
+          quantity: it.quantity,
+          price: it.price,
+          subtotal: it.price * it.quantity
+        }));
+
+        const row = await sb.createOrder(order, items);
+
+        // Optional: also notify via /api endpoint (so email/WhatsApp fire from server)
+        // If running on Vercel with API routes, this is preferred. Falls through silently otherwise.
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: { ...row, items } })
+          });
+        } catch (_) {}
+        try {
+          await fetch('/api/send-whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: { ...row, items } })
+          });
+        } catch (_) {}
+
+        // Success
+        document.getElementById('orderNumber').textContent = row.order_number;
+        document.getElementById('successModal').classList.add('open');
+        window.Cart.clear();
+      } catch (err) {
+        Admin.toast(err.message || 'Order failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Place Order';
+      }
+    });
+
+    // init
+    renderSummary();
+    loadPaymentMethods();
+  </script>
+</body>
+</html>

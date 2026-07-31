@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — LUMÉRA Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <script>window.__SUPABASE__ = { url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_SUPABASE_ANON_KEY' };</script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <button class="menu-toggle" id="menuToggle">☰</button>
+          <h1 style="display:inline-block;margin-left:12px;">Settings</h1>
+          <p>Brand contact, payment methods, and shipping</p>
+        </div>
+      </div>
+
+      <div id="settingsWrap"><div class="spinner"></div></div>
+    </main>
+  </div>
+
+  <script src="../js/supabase-client.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    const SettingsPage = {
+      data: {},
+      async init() {
+        const session = await Admin.requireAuth();
+        if (!session) return;
+        Admin.initShell('settings');
+        await this.load();
+      },
+
+      async load() {
+        try {
+          this.data = await sb.getSettings();
+          this.render();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      },
+
+      render() {
+        const d = this.data;
+        const payments = d.payment_methods || [];
+
+        document.getElementById('settingsWrap').innerHTML = `
+          <!-- BRAND -->
+          <div class="card">
+            <div class="card-head"><h3>Brand Contact</h3></div>
+            <div class="card-body" style="padding:24px;">
+              <div class="row">
+                <div class="field"><label>Brand Name</label><input data-key="brand_name" value="${Admin.escape(d.brand_name || '')}" /></div>
+                <div class="field"><label>Phone</label><input data-key="brand_phone" value="${Admin.escape(d.brand_phone || '')}" /></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Email</label><input type="email" data-key="brand_email" value="${Admin.escape(d.brand_email || '')}" /></div>
+                <div class="field"><label>Address</label><input data-key="brand_address" value="${Admin.escape(d.brand_address || '')}" /></div>
+              </div>
+              <div class="row three">
+                <div class="field"><label>Instagram</label><input data-key="brand_instagram" value="${Admin.escape(d.brand_instagram || '')}" /></div>
+                <div class="field"><label>Facebook</label><input data-key="brand_facebook" value="${Admin.escape(d.brand_facebook || '')}" /></div>
+                <div class="field"><label>TikTok</label><input data-key="brand_tiktok" value="${Admin.escape(d.brand_tiktok || '')}" /></div>
+              </div>
+              <button class="btn btn-primary" onclick="SettingsPage.save('brand')">Save Brand</button>
+            </div>
+          </div>
+
+          <!-- SHIPPING -->
+          <div class="card">
+            <div class="card-head"><h3>Shipping & Tax</h3></div>
+            <div class="card-body" style="padding:24px;">
+              <div class="row three">
+                <div class="field"><label>Shipping Fee (EGP)</label><input type="number" step="0.01" data-key="shipping_fee" value="${d.shipping_fee || 0}" /></div>
+                <div class="field"><label>Free Shipping Above (EGP)</label><input type="number" step="0.01" data-key="free_shipping_threshold" value="${d.free_shipping_threshold || 0}" /></div>
+                <div class="field"><label>Tax Rate (%)</label><input type="number" step="0.01" data-key="tax_rate" value="${d.tax_rate || 0}" /></div>
+              </div>
+              <button class="btn btn-primary" onclick="SettingsPage.save('shipping')">Save Shipping</button>
+            </div>
+          </div>
+
+          <!-- PAYMENT METHODS -->
+          <div class="card">
+            <div class="card-head"><h3>Payment Methods</h3><button class="btn btn-secondary btn-sm" onclick="SettingsPage.addPayment()">+ Add Method</button></div>
+            <div class="card-body" style="padding:24px;">
+              <div id="paymentList">
+                ${payments.map((p, i) => this.paymentRow(p, i)).join('')}
+              </div>
+              <button class="btn btn-primary" style="margin-top:16px;" onclick="SettingsPage.savePayments()">Save Payment Methods</button>
+            </div>
+          </div>
+
+          <!-- SEO -->
+          <div class="card">
+            <div class="card-head"><h3>SEO Defaults</h3></div>
+            <div class="card-body" style="padding:24px;">
+              <div class="field"><label>Meta Title</label><input data-key="meta_title" value="${Admin.escape(d.meta_title || '')}" /></div>
+              <div class="field"><label>Meta Description</label><textarea data-key="meta_description">${Admin.escape(d.meta_description || '')}</textarea></div>
+              <button class="btn btn-primary" onclick="SettingsPage.save('seo')">Save SEO</button>
+            </div>
+          </div>
+        `;
+      },
+
+      paymentRow(p, i) {
+        return `
+          <div class="row" style="margin-bottom:8px;align-items:end;">
+            <div class="field"><label>ID</label><input data-pm-id="${i}" value="${Admin.escape(p.id)}" /></div>
+            <div class="field"><label>Label</label><input data-pm-label="${i}" value="${Admin.escape(p.label)}" /></div>
+          </div>
+          <div class="row" style="margin-bottom:8px;">
+            <div class="field"><label>Instructions</label><input data-pm-instructions="${i}" value="${Admin.escape(p.instructions || '')}" /></div>
+            <div class="field"><label>Enabled</label>
+              <label class="checkbox"><input type="checkbox" data-pm-enabled="${i}" ${p.enabled ? 'checked' : ''} /> Show on checkout</label>
+            </div>
+          </div>
+          <hr style="border:none;border-top:1px solid #eee;margin:12px 0;" />`;
+      },
+
+      addPayment() {
+        const cur = this.data.payment_methods || [];
+        cur.push({ id: 'new_' + Date.now(), label: 'New Method', enabled: true, instructions: '' });
+        this.data.payment_methods = cur;
+        this.render();
+      },
+
+      async save(group) {
+        const keys = {
+          brand: ['brand_name', 'brand_phone', 'brand_email', 'brand_address', 'brand_instagram', 'brand_facebook', 'brand_tiktok'],
+          shipping: ['shipping_fee', 'free_shipping_threshold', 'tax_rate'],
+          seo: ['meta_title', 'meta_description']
+        }[group] || [];
+        try {
+          for (const k of keys) {
+            const el = document.querySelector(`[data-key="${k}"]`);
+            if (!el) continue;
+            let val = el.type === 'number' ? Number(el.value) : el.value;
+            await sb.adminUpdateSetting(k, val);
+          }
+          Admin.toast(`${group} settings saved`, 'success');
+          await this.load();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      },
+
+      async savePayments() {
+        try {
+          const rows = document.querySelectorAll('#paymentList .row');
+          const arr = [];
+          for (let i = 0; i < rows.length / 2; i++) {
+            const id = document.querySelector(`[data-pm-id="${i}"]`)?.value;
+            const label = document.querySelector(`[data-pm-label="${i}"]`)?.value;
+            const instructions = document.querySelector(`[data-pm-instructions="${i}"]`)?.value;
+            const enabled = document.querySelector(`[data-pm-enabled="${i}"]`)?.checked;
+            if (!id || !label) continue;
+            arr.push({ id, label, instructions: instructions || '', enabled: !!enabled });
+          }
+          await sb.adminUpdateSetting('payment_methods', arr);
+          Admin.toast('Payment methods saved', 'success');
+          await this.load();
+        } catch (err) {
+          Admin.toast(err.message, 'error');
+        }
+      }
+    };
+
+    SettingsPage.init();
+  </script>
+</body>
+</html>
