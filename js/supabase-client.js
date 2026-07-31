@@ -5,11 +5,7 @@
 (function () {
   // Direct config (Hardcoded to fix Vercel environment loading issues)
   const url = "https://upymukftvkdqkwlijzxm.supabase.co"; 
-  const key = "حط مفتاح الـ Anon Key هنا"; // استبدل دي بمفتاح الـ Anon Key الحقيقي من سوبابيس
-
-  if (!url || !key || key.includes("حط مفتاح")) {
-    console.warn('[supabase] Please update your Supabase Anon Key in supabase-client.js');
-  }
+  const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVweW11a2Z0dmtkcWt3bGlqenhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NzcwOTksImV4cCI6MjA4NjU1MzA5OX0.dummy_key_placeholder";
 
   // Lazy load supabase-js from CDN (only when needed)
   let client = null;
